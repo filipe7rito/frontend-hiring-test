@@ -1,28 +1,51 @@
-import { createContext, useContext, useMemo, useState } from 'react';
+import React, { createContext, ReactNode, useContext, useEffect, useMemo, useState } from 'react';
 import { useNavigate, Outlet } from 'react-router-dom';
 import { LOGIN } from '../gql/mutations';
 import { useLocalStorage } from './useLocalStorage';
 import { useMutation } from '@apollo/client';
 
-const AuthContext = createContext({
-  login: ({}) => {},
-  logout: () => {}
-});
+type Credentials = {
+  username: string;
+  password: string;
+};
+
+type ProviderType = {
+  login: (credentials: Credentials) => void;
+  logout: () => void;
+  isAuthenticated: () => boolean;
+  user: UserType | null;
+};
+
+const defaultState: ProviderType = {
+  login: () => {},
+  logout: () => {},
+  isAuthenticated: () => false,
+  user: null
+};
+
+const AuthContext = createContext(defaultState);
 
 export interface AuthPRoviderProps {
   children: React.ReactNode;
 }
 
 export const AuthProvider = () => {
-  const [user, setUser] = useState();
+  const [user, setUser] = useState<UserType | null>(null);
   const [status, setStatus] = useState('loading');
   const [accessToken, setAccessToken] = useLocalStorage('access_token', undefined);
   const [refreshToken, setRefreshToken] = useLocalStorage('refresh_token', undefined);
+  const [lastUser, setLastUser] = useLocalStorage('user', null);
   const [loginMutation] = useMutation(LOGIN);
   const navigate = useNavigate();
 
+  useEffect(() => {
+    if (accessToken && lastUser) {
+      setUser(lastUser);
+    }
+  }, [accessToken, lastUser]);
+
   // call this function when you want to authenticate the user
-  const login = ({ username, password }: any) => {
+  const login = ({ username, password }: Credentials) => {
     return loginMutation({
       variables: { input: { username, password } },
       onCompleted: ({ login }: any) => {
@@ -30,6 +53,7 @@ export const AuthProvider = () => {
         setAccessToken(access_token);
         setRefreshToken(refresh_token);
         setUser(user);
+        setLastUser(user);
         console.log('redirect to calls');
         navigate('/calls');
       }
@@ -40,15 +64,25 @@ export const AuthProvider = () => {
   const logout = () => {
     setAccessToken(null);
     setRefreshToken(null);
-    navigate('/login', { replace: true });
+    setLastUser(null);
+    setUser(null);
+    navigate('/login');
   };
 
-  const value = useMemo(() => {
-    return {
+  const isAuthenticated = () => {
+    return !!window.localStorage.getItem('access_token');
+  };
+
+  const value = useMemo(
+    () => ({
       login,
-      logout
-    };
-  }, []);
+      logout,
+      isAuthenticated,
+      user
+    }),
+    [user]
+  );
+
   return (
     <AuthContext.Provider value={value}>
       <Outlet />
