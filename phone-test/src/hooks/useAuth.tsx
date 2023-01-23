@@ -12,14 +12,14 @@ type Credentials = {
 type ProviderType = {
   login: (credentials: Credentials) => void;
   logout: () => void;
-  isAuthenticated: () => boolean;
+  isAuthenticated: boolean;
   user: UserType | null;
 };
 
 const defaultState: ProviderType = {
   login: () => {},
   logout: () => {},
-  isAuthenticated: () => false,
+  isAuthenticated: false,
   user: null
 };
 
@@ -37,6 +37,8 @@ export const AuthProvider = () => {
   const [lastUser, setLastUser] = useLocalStorage('user', null);
   const [loginMutation] = useMutation(LOGIN);
   const navigate = useNavigate();
+
+  const isAuthenticated = !!window.localStorage.getItem('access_token');
 
   useEffect(() => {
     if (accessToken && lastUser) {
@@ -67,10 +69,6 @@ export const AuthProvider = () => {
     setLastUser(null);
     setUser(null);
     navigate('/login');
-  };
-
-  const isAuthenticated = () => {
-    return !!window.localStorage.getItem('access_token');
   };
 
   const value = useMemo(

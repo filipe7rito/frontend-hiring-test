@@ -16,7 +16,7 @@ export const LoginPage = () => {
 
   const { isAuthenticated } = useAuth();
 
-  if (isAuthenticated()) {
+  if (isAuthenticated) {
     return <Navigate to="/calls" replace />;
   }
 
