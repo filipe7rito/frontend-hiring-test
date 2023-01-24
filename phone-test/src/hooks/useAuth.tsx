@@ -1,8 +1,9 @@
-import React, { createContext, ReactNode, useContext, useEffect, useMemo, useState } from 'react';
-import { useNavigate, Outlet } from 'react-router-dom';
+import { ApolloError, useLazyQuery, useMutation } from '@apollo/client';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { Outlet, useNavigate } from 'react-router-dom';
 import { LOGIN } from '../gql/mutations';
+import { GET_USER } from '../gql/queries/';
 import { useLocalStorage } from './useLocalStorage';
-import { useMutation } from '@apollo/client';
 
 type Credentials = {
   username: string;
@@ -14,13 +15,16 @@ type ProviderType = {
   logout: () => void;
   isAuthenticated: boolean;
   user: UserType | null;
+  loading: boolean;
+  error?: ApolloError;
 };
 
 const defaultState: ProviderType = {
   login: () => {},
   logout: () => {},
   isAuthenticated: false,
-  user: null
+  user: null,
+  loading: false
 };
 
 const AuthContext = createContext(defaultState);
@@ -31,20 +35,26 @@ export interface AuthPRoviderProps {
 
 export const AuthProvider = () => {
   const [user, setUser] = useState<UserType | null>(null);
-  const [status, setStatus] = useState('loading');
   const [accessToken, setAccessToken] = useLocalStorage('access_token', undefined);
   const [refreshToken, setRefreshToken] = useLocalStorage('refresh_token', undefined);
-  const [lastUser, setLastUser] = useLocalStorage('user', null);
   const [loginMutation] = useMutation(LOGIN);
   const navigate = useNavigate();
-
-  const isAuthenticated = !!window.localStorage.getItem('access_token');
+  const [getUser, { loading, error, data }] = useLazyQuery(GET_USER);
 
   useEffect(() => {
-    if (accessToken && lastUser) {
-      setUser(lastUser);
+    if (accessToken) {
+      getUser();
     }
-  }, [accessToken, lastUser]);
+  }, []);
+
+  useEffect(() => {
+    if (data) {
+      setUser(data.me);
+    }
+  }, [data]);
+
+  // verify if user is authenticated
+  const isAuthenticated = () => !!window.localStorage.getItem('access_token');
 
   // call this function when you want to authenticate the user
   const login = ({ username, password }: Credentials) => {
@@ -55,7 +65,6 @@ export const AuthProvider = () => {
         setAccessToken(access_token);
         setRefreshToken(refresh_token);
         setUser(user);
-        setLastUser(user);
         console.log('redirect to calls');
         navigate('/calls');
       }
@@ -66,7 +75,6 @@ export const AuthProvider = () => {
   const logout = () => {
     setAccessToken(null);
     setRefreshToken(null);
-    setLastUser(null);
     setUser(null);
     navigate('/login');
   };
@@ -75,10 +83,11 @@ export const AuthProvider = () => {
     () => ({
       login,
       logout,
-      isAuthenticated,
-      user
+      isAuthenticated: isAuthenticated(),
+      user,
+      loading
     }),
-    [user]
+    [user, loading, isAuthenticated]
   );
 
   return (

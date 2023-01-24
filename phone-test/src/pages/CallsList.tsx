@@ -13,6 +13,7 @@ import {
 } from '@aircall/tractor';
 import { formatDate, formatDuration } from '../helpers/dates';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import Spinner from '../components/Spinner';
 
 export const PaginationWrapper = styled.div`
   > div {
@@ -30,6 +31,7 @@ export const CallsListPage = () => {
   const navigate = useNavigate();
   const pageQueryParams = search.get('page');
   const activePage = !!pageQueryParams ? parseInt(pageQueryParams) : 1;
+
   const { loading, error, data } = useQuery(PAGINATED_CALLS, {
     variables: {
       offset: (activePage - 1) * CALLS_PER_PAGE,
@@ -38,7 +40,7 @@ export const CallsListPage = () => {
     // onCompleted: () => handleRefreshToken(),
   });
 
-  if (loading) return <p>Loading calls...</p>;
+  if (loading) return <Spinner />;
   if (error) return <p>ERROR</p>;
   if (!data) return <p>Not found</p>;
 

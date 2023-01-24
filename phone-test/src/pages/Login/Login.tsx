@@ -1,11 +1,11 @@
 import * as React from 'react';
 
-import { Flex, Icon, LogoMarkColor, LogoMarkMono, Spacer, useToast } from '@aircall/tractor';
+import { Flex, Icon, LogoMarkColor, Spacer, useToast } from '@aircall/tractor';
 
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 import { FormState } from './Login.decl';
 import { LoginForm } from './LoginForm';
-import { useAuth } from '../../hooks/useAuth';
-import { Navigate } from 'react-router-dom';
 
 const LOGIN_REJECTED = 'LOGIN_REJECTED';
 
