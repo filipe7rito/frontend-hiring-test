@@ -76,12 +76,14 @@ export const CallsListPage = () => {
           return (
             <Box
               key={call.id}
-              bg="black-a30"
+              bg="#F7F7F7"
+              boxShadow={5}
               borderRadius={16}
               cursor="pointer"
               onClick={() => handleCallOnClick(call.id)}
             >
               <Grid
+                data-testid={`call-item`}
                 gridTemplateColumns="32px 1fr max-content"
                 columnGap={2}
                 borderBottom="1px solid"
