@@ -1,21 +1,8 @@
 import { ApolloClient, createHttpLink, from, fromPromise, InMemoryCache } from '@apollo/client';
 import { setContext } from '@apollo/client/link/context';
 import { onError } from '@apollo/client/link/error';
+import tokenStorage from '../../helpers/tokenStorage';
 import { REFRESH_TOKEN } from '../mutations';
-
-export const getAccessToken = () => {
-  const accessToken = localStorage.getItem('access_token');
-  const parsedToken = accessToken ? JSON.parse(accessToken) : undefined;
-
-  return parsedToken;
-};
-
-const getRefreshToken = () => {
-  const refreshToken = localStorage.getItem('refresh_token');
-  const parsedToken = refreshToken ? JSON.parse(refreshToken) : undefined;
-
-  return parsedToken;
-};
 
 const httpLink = createHttpLink({
   uri: 'https://frontend-test-api.aircall.dev/graphql'
@@ -25,8 +12,10 @@ let isRefreshingToken: boolean = false;
 
 const getRefreshedToken = async (): Promise<void> => {
   // Set refresh token as the current access token to be used in the request from authLink
-  const refreshToken = getRefreshToken();
-  localStorage.setItem('access_token', JSON.stringify(refreshToken));
+  const refreshToken = tokenStorage.getRefreshToken();
+  if (refreshToken) {
+    tokenStorage.setAccessToken(refreshToken);
+  }
 
   /**
    * If we are already refreshing the token, return the current promise
@@ -49,8 +38,8 @@ const getRefreshedToken = async (): Promise<void> => {
     const { access_token, refresh_token } = data.refreshTokenV2;
 
     // Update the tokens in local storage
-    localStorage.setItem('access_token', JSON.stringify(access_token));
-    localStorage.setItem('refresh_token', JSON.stringify(refresh_token));
+    tokenStorage.setAccessToken(access_token);
+    tokenStorage.setRefreshToken(refresh_token);
   } catch (e) {
     throw new Error('Error refreshing token');
   }
@@ -80,7 +69,7 @@ const errorLink = onError(({ graphQLErrors, operation, forward }) => {
 });
 
 const authLink = setContext((_, { headers }) => {
-  const accessToken = getAccessToken();
+  const accessToken = tokenStorage.getAccessToken();
 
   // return the headers to the context so httpLink can read them
   return {

@@ -1,9 +1,9 @@
 import { ApolloError, useLazyQuery, useMutation } from '@apollo/client';
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
-import { getAccessToken } from '../gql/client';
 import { LOGIN } from '../gql/mutations';
 import { GET_USER } from '../gql/queries/';
+import tokenStorage from '../helpers/tokenStorage';
 import { useLocalStorage } from './useLocalStorage';
 
 type Credentials = {
@@ -55,7 +55,7 @@ export const AuthProvider = () => {
   }, [data]);
 
   // verify if user is authenticated
-  const isAuthenticated = () => !!getAccessToken();
+  const isAuthenticated = () => !!tokenStorage.getAccessToken();
 
   // call this function when you want to authenticate the user
   const login = ({ username, password }: Credentials) => {
