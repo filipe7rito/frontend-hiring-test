@@ -1,4 +1,4 @@
-import { Box, Button, Flex, Grid, Spacer, Typography } from '@aircall/tractor';
+import { Icon, UserFilled, Box, Button, Flex, Grid, Spacer, Typography } from '@aircall/tractor';
 import { Link, Outlet } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import logo from '../../logo.png';
@@ -19,6 +19,7 @@ export const ProtectedLayout = () => {
         </Link>
         {user && (
           <Spacer space="m" alignItems="center">
+            <Icon component={UserFilled} size={24} />
             <Typography variant="body" textAlign="center" py={3}>
               {`Welcome ${user?.username}!`}
             </Typography>
