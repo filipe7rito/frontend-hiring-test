@@ -28,11 +28,13 @@
   },
   "scripts": {
     "start": "react-scripts start",
+    "start:cypress": "PORT=5000 react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "cypress": "cypress open",
-    "test:e2e": "\"test:e2e:run\" \"test:e2e:start\"",
-    "test:e2e:run": "start-server-and-test start http://localhost:3000 cypress",
+    "cypress:open": "cypress open",
+    "cypress:run": "cypress run",
+    "test:e2e:run": "start-server-and-test start:cypress http://localhost:5000 cypress:run",
+    "test:e2e:open": "start-server-and-test start:cypress http://localhost:5000 cypress:open",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
