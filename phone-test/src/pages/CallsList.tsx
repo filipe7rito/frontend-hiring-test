@@ -1,28 +1,19 @@
+import { useQuery } from '@apollo/client';
+import styled from 'styled-components';
+import { PAGINATED_CALLS } from '../gql/queries';
 import {
-  ArchiveFilled,
-  ArchiveOutlined,
+  Grid,
+  Icon,
+  Typography,
+  Spacer,
   Box,
   DiagonalDownOutlined,
   DiagonalUpOutlined,
-  Flex,
-  Grid,
-  Icon,
-  IconButton,
-  Pagination,
-  Spacer,
-  SpinnerOutlined,
-  Tooltip,
-  Typography,
-  useToast
+  Pagination
 } from '@aircall/tractor';
-import { useMutation, useQuery } from '@apollo/client';
-import { useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import styled from 'styled-components';
-import Spinner from '../components/Spinner';
-import { ARCHIVE_CALL } from '../gql/mutations/archiveCall';
-import { PAGINATED_CALLS } from '../gql/queries';
 import { formatDate, formatDuration } from '../helpers/dates';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import Spinner from '../components/Spinner';
 
 export const PaginationWrapper = styled.div`
   > div {
@@ -34,17 +25,10 @@ export const PaginationWrapper = styled.div`
 `;
 
 const CALLS_PER_PAGE = 5;
-const ARCHIVE_OPERATION = 'ARCHIVE_OPERATION';
 
 export const CallsListPage = () => {
   const [search] = useSearchParams();
   const navigate = useNavigate();
-  const { showToast, removeToast } = useToast();
-  const [archiveMutation] = useMutation(ARCHIVE_CALL);
-
-  // Ref to keep track of the call being archived
-  let archivingCallId = useRef<string | undefined>();
-
   const pageQueryParams = search.get('page');
   const activePage = !!pageQueryParams ? parseInt(pageQueryParams) : 1;
 
@@ -68,35 +52,6 @@ export const CallsListPage = () => {
 
   const handlePageChange = (page: number) => {
     navigate(`/calls/?page=${page}`);
-  };
-
-  const handleArchiveCall = (call: Call) => {
-    const { id } = call;
-
-    removeToast(ARCHIVE_OPERATION);
-    archivingCallId.current = id;
-
-    archiveMutation({
-      variables: {
-        id
-      },
-      onCompleted: ({ archiveCall }) => {
-        archivingCallId.current = undefined;
-        showToast({
-          id: ARCHIVE_OPERATION,
-          message: archiveCall.is_archived ? 'Call archived' : 'Call unarchived',
-          variant: 'success'
-        });
-      },
-      onError: () => {
-        archivingCallId.current = undefined;
-        showToast({
-          id: ARCHIVE_OPERATION,
-          message: 'Error while archiving call',
-          variant: 'error'
-        });
-      }
-    });
   };
 
   return (
@@ -126,8 +81,6 @@ export const CallsListPage = () => {
               borderRadius={16}
               cursor="pointer"
               onClick={() => handleCallOnClick(call.id)}
-              onMouseOver={e => (e.currentTarget.style.backgroundColor = '#E5E5E5')}
-              onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#F7F7F7')}
             >
               <Grid
                 data-testid={`call-item`}
@@ -146,34 +99,12 @@ export const CallsListPage = () => {
                   <Typography variant="body">{title}</Typography>
                   <Typography variant="body2">{subtitle}</Typography>
                 </Box>
-
-                <Flex alignItems="center">
-                  <Box>
-                    <Typography variant="caption" textAlign="right">
-                      {duration}
-                    </Typography>
-                    <Typography variant="caption">{date}</Typography>
-                  </Box>
-
-                  <Spacer space="s" ml="12px">
-                    <Tooltip title={call.is_archived ? 'Unarchive' : 'Archive'}>
-                      {archivingCallId.current === call.id ? (
-                        <Icon key={call.id} component={SpinnerOutlined} spin />
-                      ) : (
-                        <IconButton
-                          key={call.id}
-                          size={24}
-                          component={call.is_archived ? ArchiveFilled : ArchiveOutlined}
-                          color="#01B288"
-                          onClick={e => {
-                            e.stopPropagation();
-                            handleArchiveCall(call);
-                          }}
-                        />
-                      )}
-                    </Tooltip>
-                  </Spacer>
-                </Flex>
+                <Box>
+                  <Typography variant="caption" textAlign="right">
+                    {duration}
+                  </Typography>
+                  <Typography variant="caption">{date}</Typography>
+                </Box>
               </Grid>
               <Box px={4} py={2}>
                 <Typography variant="caption">{notes}</Typography>
