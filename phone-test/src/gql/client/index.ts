@@ -14,11 +14,10 @@ import { getMainDefinition } from '@apollo/client/utilities';
 import { SubscriptionClient } from 'subscriptions-transport-ws'; // <- import this
 import tokenStorage from '../../helpers/tokenStorage';
 import { REFRESH_TOKEN } from '../mutations';
-import { RetryLink } from '@apollo/client/link/retry';
 
 const url = {
   http: 'https://frontend-test-api.aircall.dev/graphql',
-  ws: 'ws://frontend-test-api.aircall.dev/websocket'
+  ws: 'wss://frontend-test-api.aircall.dev/websocket'
 };
 
 let isRefreshingToken: boolean = false;
