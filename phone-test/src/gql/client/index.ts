@@ -131,6 +131,6 @@ const splitLink: ApolloLink = split(
 );
 
 export const client = new ApolloClient({
-  link: from([errorLink, authLink, httpLink]),
+  link: from([errorLink, authLink, splitLink]),
   cache: new InMemoryCache()
 });
