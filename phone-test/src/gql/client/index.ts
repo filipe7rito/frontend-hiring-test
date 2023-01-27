@@ -11,7 +11,7 @@ import { setContext } from '@apollo/client/link/context';
 import { onError } from '@apollo/client/link/error';
 import { WebSocketLink } from '@apollo/client/link/ws';
 import { getMainDefinition } from '@apollo/client/utilities';
-import { SubscriptionClient } from 'subscriptions-transport-ws'; // <- import this
+import { OperationOptions, SubscriptionClient } from 'subscriptions-transport-ws'; // <- import this
 import tokenStorage from '../../helpers/tokenStorage';
 import { REFRESH_TOKEN } from '../mutations';
 
@@ -60,13 +60,22 @@ const getRefreshedToken = async (): Promise<void> => {
 const wsClient = new SubscriptionClient(url.ws, {
   lazy: true,
   reconnect: true,
-  timeout: 40000,
   connectionParams: () => {
     return {
       authorization: `Bearer ${tokenStorage.getAccessToken()}`
     };
   }
 });
+
+/**
+ * Middleware to add the access token to the request
+ * This is needed because when the websocket is reconnected an auth error is thrown
+ */
+wsClient.applyMiddlewares((operationOptions: OperationOptions, next: Function) => {
+  operationOptions['authorization'] = tokenStorage.getAccessToken();
+  next();
+});
+
 const wsLink = new WebSocketLink(wsClient);
 
 wsClient.onConnected(() => console.log('websocket connected!!'));
