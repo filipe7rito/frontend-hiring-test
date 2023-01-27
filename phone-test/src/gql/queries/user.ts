@@ -3,7 +3,7 @@ import { USER_FIELDS } from '../fragments/user';
 
 export const GET_USER = gql`
   ${USER_FIELDS}
-  query ME {
+  query Me {
     me {
       ...UserFields
     }

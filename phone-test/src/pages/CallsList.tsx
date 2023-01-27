@@ -22,6 +22,7 @@ import styled from 'styled-components';
 import Spinner from '../components/Spinner';
 import { ARCHIVE_CALL } from '../gql/mutations';
 import { PAGINATED_CALLS } from '../gql/queries';
+import { CALLS_SUBSCRIPTION } from '../gql/subscriptions';
 import { formatDate, formatDuration } from '../helpers/dates';
 
 export const PaginationWrapper = styled.div`
@@ -48,12 +49,16 @@ export const CallsListPage = () => {
   const pageQueryParams = search.get('page');
   const activePage = !!pageQueryParams ? parseInt(pageQueryParams) : 1;
 
-  const { loading, error, data } = useQuery(PAGINATED_CALLS, {
+  const { loading, error, data, subscribeToMore } = useQuery(PAGINATED_CALLS, {
     variables: {
       offset: (activePage - 1) * CALLS_PER_PAGE,
       limit: CALLS_PER_PAGE
     }
     // onCompleted: () => handleRefreshToken(),
+  });
+
+  subscribeToMore({
+    document: CALLS_SUBSCRIPTION
   });
 
   if (loading) return <Spinner />;
