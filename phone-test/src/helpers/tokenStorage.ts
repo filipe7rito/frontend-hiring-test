@@ -1,8 +1,8 @@
 type TokenStorage = {
   getAccessToken: () => string | null;
   getRefreshToken: () => string | null;
-  setAccessToken: (accessToken: string) => void;
-  setRefreshToken: (refreshToken: string) => void;
+  setAccessToken: (accessToken: string | null) => void;
+  setRefreshToken: (refreshToken: string | null) => void;
 };
 
 const tokenStorage: TokenStorage = {
@@ -16,10 +16,10 @@ const tokenStorage: TokenStorage = {
     if (!refreshToken) return null;
     return JSON.parse(refreshToken);
   },
-  setAccessToken: (accessToken: string) => {
+  setAccessToken: (accessToken: string | null) => {
     localStorage.setItem('access_token', JSON.stringify(accessToken));
   },
-  setRefreshToken: (refreshToken: string) => {
+  setRefreshToken: (refreshToken: string | null) => {
     localStorage.setItem('refresh_token', JSON.stringify(refreshToken));
   }
 };
