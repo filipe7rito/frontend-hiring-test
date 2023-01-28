@@ -12,7 +12,8 @@ e.g:
 
 ### Micro frontends architechture
 
-With a Micro frontend architecture we could work in the following way:
+With a Micro frontend architecture assuming that the application would be splitted by domain,
+we would only work on that business domain repository.
 
 1. Open a `feature` PR against `master`
    - On the PR we would run our CI steps [example](https://github.com/filipe7rito/frontend-hiring-test/pull/1)
