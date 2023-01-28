@@ -35,7 +35,9 @@
     "cypress:run": "cypress run",
     "test:e2e:run": "start-server-and-test start:cypress http://localhost:5000 cypress:run",
     "test:e2e:open": "start-server-and-test start:cypress http://localhost:5000 cypress:open",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "lint": "eslint src --ext .ts,.tsx",
+    "typecheck": "tsc --noEmit"
   },
   "eslintConfig": {
     "extends": [

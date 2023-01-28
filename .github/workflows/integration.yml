@@ -1,16 +1,19 @@
 name: Integration
 
 # only trigger on pull request create and update events
-on:  
+on:
   push:
   pull_request:
     branches:
       - master
-      
+
+env:
+  CI: ''
+
 defaults:
   run:
     working-directory: phone-test
-    
+
 jobs:
   build:
     name: Build
@@ -30,7 +33,7 @@ jobs:
           key: node_modules-${{ secrets.CACHE_BUSTER }}-${{ hashFiles('**/yarn.lock') }}
           restore-keys: |
             node_modules-${{ secrets.CACHE_BUSTER }}
-            
+
       - name: Install
         run: yarn install --frozen-lockfile
 
