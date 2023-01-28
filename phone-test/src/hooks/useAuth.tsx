@@ -4,7 +4,6 @@ import { Outlet, useNavigate } from 'react-router-dom';
 import { LOGIN } from '../gql/mutations';
 import { GET_USER } from '../gql/queries/';
 import tokenStorage from '../helpers/tokenStorage';
-import { useLocalStorage } from './useLocalStorage';
 
 type Credentials = {
   username: string;
