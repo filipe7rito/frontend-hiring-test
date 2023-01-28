@@ -36,26 +36,32 @@ export interface AuthPRoviderProps {
 
 export const AuthProvider = () => {
   const [user, setUser] = useState<UserType | null>(null);
-  const [accessToken, setAccessToken] = useLocalStorage('access_token', undefined);
-  const [refreshToken, setRefreshToken] = useLocalStorage('refresh_token', undefined);
   const [loginMutation] = useMutation(LOGIN);
   const navigate = useNavigate();
   const [getUser, { loading, error, data }] = useLazyQuery(GET_USER);
+  const isAuthenticated = !!tokenStorage.getAccessToken();
 
+  // get user data at first render if user is authenticated
   useEffect(() => {
-    if (accessToken) {
+    if (isAuthenticated) {
       getUser();
     }
   }, []);
 
+  // set user data if there is no error fetching user data
   useEffect(() => {
     if (data) {
       setUser(data.me);
     }
   }, [data]);
 
-  // verify if user is authenticated
-  const isAuthenticated = () => !!tokenStorage.getAccessToken();
+  // log out user if there is an error fetching user data
+  useEffect(() => {
+    if (error) {
+      console.log(error);
+      logout();
+    }
+  }, [error]);
 
   // call this function when you want to authenticate the user
   const login = ({ username, password }: Credentials) => {
@@ -63,8 +69,8 @@ export const AuthProvider = () => {
       variables: { input: { username, password } },
       onCompleted: ({ login }: any) => {
         const { access_token, refresh_token, user } = login;
-        setAccessToken(access_token);
-        setRefreshToken(refresh_token);
+        tokenStorage.setAccessToken(access_token);
+        tokenStorage.setRefreshToken(refresh_token);
         setUser(user);
         console.log('redirect to calls');
         navigate('/calls');
@@ -74,8 +80,8 @@ export const AuthProvider = () => {
 
   // call this function to sign out logged in user
   const logout = () => {
-    setAccessToken(null);
-    setRefreshToken(null);
+    tokenStorage.setAccessToken(null);
+    tokenStorage.setRefreshToken(null);
     setUser(null);
     navigate('/login');
   };
@@ -84,7 +90,7 @@ export const AuthProvider = () => {
     () => ({
       login,
       logout,
-      isAuthenticated: isAuthenticated(),
+      isAuthenticated,
       user,
       loading
     }),

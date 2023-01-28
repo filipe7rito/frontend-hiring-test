@@ -1,7 +1,7 @@
 import { useQuery } from '@apollo/client';
 import { useNavigate, useParams } from 'react-router-dom';
 import { GET_CALL_DETAILS } from '../gql/queries/getCallDetails';
-import { Box, Button, ChevronLeftOutlined, Spacer, Typography } from '@aircall/tractor';
+import { Box, Button, Spacer, Typography } from '@aircall/tractor';
 import { formatDate, formatDuration } from '../helpers/dates';
 import Spinner from '../components/Spinner';
 
