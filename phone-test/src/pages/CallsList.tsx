@@ -24,17 +24,17 @@ import { ARCHIVE_CALL } from '../gql/mutations';
 import { PAGINATED_CALLS } from '../gql/queries';
 import { CALLS_SUBSCRIPTION } from '../gql/subscriptions';
 import { formatDate, formatDuration } from '../helpers/dates';
+import { useState } from 'react';
 
 export const PaginationWrapper = styled.div`
   > div {
     width: inherit;
     margin-top: 20px;
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
   }
 `;
 
-const CALLS_PER_PAGE = 5;
 const ARCHIVE_OPERATION = 'ARCHIVE_OPERATION';
 
 export const CallsListPage = () => {
@@ -47,14 +47,14 @@ export const CallsListPage = () => {
   let archivingCallId = useRef<string | undefined>();
 
   const pageQueryParams = search.get('page');
+  const [pageSize, setPageSize] = useState(25);
   const activePage = !!pageQueryParams ? parseInt(pageQueryParams) : 1;
 
   const { loading, error, data, subscribeToMore } = useQuery(PAGINATED_CALLS, {
     variables: {
-      offset: (activePage - 1) * CALLS_PER_PAGE,
-      limit: CALLS_PER_PAGE
+      offset: (activePage - 1) * pageSize,
+      limit: pageSize
     }
-    // onCompleted: () => handleRefreshToken(),
   });
 
   subscribeToMore({
@@ -103,6 +103,17 @@ export const CallsListPage = () => {
       }
     });
   };
+  /**
+   * When the page size changes, we need to check if the new page size
+   * will result in a page that is higher than the total number of pages.
+   */
+  const handlePagesizeChange = (newPageSize: number) => {
+    const totalPages = Math.ceil(totalCount / newPageSize);
+    const newActivePage = activePage > totalPages ? totalPages : activePage;
+
+    setPageSize(newPageSize);
+    navigate(`/calls/?page=${newActivePage}`);
+  };
 
   return (
     <>
@@ -110,89 +121,93 @@ export const CallsListPage = () => {
         Calls History
       </Typography>
       <Spacer space={3} direction="vertical">
-        {calls.map((call: Call) => {
-          const icon = call.direction === 'inbound' ? DiagonalDownOutlined : DiagonalUpOutlined;
-          const title =
-            call.call_type === 'missed'
-              ? 'Missed call'
-              : call.call_type === 'answered'
-              ? 'Call answered'
-              : 'Voicemail';
-          const subtitle = call.direction === 'inbound' ? `from ${call.from}` : `to ${call.to}`;
-          const duration = formatDuration(call.duration / 1000);
-          const date = formatDate(call.created_at);
-          const notes = call.notes ? `Call has ${call.notes.length} notes` : <></>;
+        <Box overflow={'auto'} maxHeight={'calc(100vh - 220px)'}>
+          {calls.map((call: Call) => {
+            const icon = call.direction === 'inbound' ? DiagonalDownOutlined : DiagonalUpOutlined;
+            const title =
+              call.call_type === 'missed'
+                ? 'Missed call'
+                : call.call_type === 'answered'
+                ? 'Call answered'
+                : 'Voicemail';
+            const subtitle = call.direction === 'inbound' ? `from ${call.from}` : `to ${call.to}`;
+            const duration = formatDuration(call.duration / 1000);
+            const date = formatDate(call.created_at);
+            const notes = call.notes ? `Call has ${call.notes.length} notes` : <></>;
 
-          return (
-            <Box
-              key={call.id}
-              bg="#F7F7F7"
-              boxShadow={5}
-              borderRadius={16}
-              cursor="pointer"
-              onClick={() => handleCallOnClick(call.id)}
-              onMouseOver={e => (e.currentTarget.style.backgroundColor = '#E5E5E5')}
-              onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#F7F7F7')}
-            >
-              <Grid
-                data-testid={`call-item`}
-                gridTemplateColumns="32px 1fr max-content"
-                columnGap={2}
-                borderBottom="1px solid"
-                borderBottomColor="neutral-700"
-                alignItems="center"
-                px={4}
-                py={2}
+            return (
+              <Box
+                key={call.id}
+                bg="#F7F7F7"
+                boxShadow={5}
+                borderRadius={16}
+                margin={2}
+                cursor="pointer"
+                onClick={() => handleCallOnClick(call.id)}
+                onMouseOver={e => (e.currentTarget.style.backgroundColor = '#E5E5E5')}
+                onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#F7F7F7')}
               >
-                <Box>
-                  <Icon component={icon} size={32} />
-                </Box>
-                <Box>
-                  <Typography variant="body">{title}</Typography>
-                  <Typography variant="body2">{subtitle}</Typography>
-                </Box>
-
-                <Flex alignItems="center">
+                <Grid
+                  data-testid={`call-item`}
+                  gridTemplateColumns="32px 1fr max-content"
+                  columnGap={2}
+                  borderBottom="1px solid"
+                  borderBottomColor="neutral-700"
+                  alignItems="center"
+                  px={4}
+                  py={2}
+                >
                   <Box>
-                    <Typography variant="caption" textAlign="right">
-                      {duration}
-                    </Typography>
-                    <Typography variant="caption">{date}</Typography>
+                    <Icon component={icon} size={32} />
+                  </Box>
+                  <Box>
+                    <Typography variant="body">{title}</Typography>
+                    <Typography variant="body2">{subtitle}</Typography>
                   </Box>
 
-                  <Spacer space="s" ml="12px">
-                    <Tooltip title={call.is_archived ? 'Unarchive' : 'Archive'}>
-                      {archivingCallId.current === call.id ? (
-                        <Icon key={call.id} component={SpinnerOutlined} spin />
-                      ) : (
-                        <IconButton
-                          key={call.id}
-                          size={24}
-                          component={call.is_archived ? ArchiveFilled : ArchiveOutlined}
-                          color="#01B288"
-                          onClick={e => {
-                            e.stopPropagation();
-                            handleArchiveCall(call);
-                          }}
-                        />
-                      )}
-                    </Tooltip>
-                  </Spacer>
-                </Flex>
-              </Grid>
-              <Box px={4} py={2}>
-                <Typography variant="caption">{notes}</Typography>
+                  <Flex alignItems="center">
+                    <Box>
+                      <Typography variant="caption" textAlign="right">
+                        {duration}
+                      </Typography>
+                      <Typography variant="caption">{date}</Typography>
+                    </Box>
+
+                    <Spacer space="s" ml="12px">
+                      <Tooltip title={call.is_archived ? 'Unarchive' : 'Archive'}>
+                        {archivingCallId.current === call.id ? (
+                          <Icon key={call.id} component={SpinnerOutlined} spin />
+                        ) : (
+                          <IconButton
+                            key={call.id}
+                            size={24}
+                            component={call.is_archived ? ArchiveFilled : ArchiveOutlined}
+                            color="#01B288"
+                            onClick={e => {
+                              e.stopPropagation();
+                              handleArchiveCall(call);
+                            }}
+                          />
+                        )}
+                      </Tooltip>
+                    </Spacer>
+                  </Flex>
+                </Grid>
+                <Box px={4} py={2}>
+                  <Typography variant="caption">{notes}</Typography>
+                </Box>
               </Box>
-            </Box>
-          );
-        })}
+            );
+          })}
+        </Box>
       </Spacer>
 
       {totalCount && (
         <PaginationWrapper>
           <Pagination
             activePage={activePage}
-            pageSize={CALLS_PER_PAGE}
+            pageSize={pageSize}
+            onPageSizeChange={handlePagesizeChange}
             onPageChange={handlePageChange}
             recordsTotalCount={totalCount}
           />
