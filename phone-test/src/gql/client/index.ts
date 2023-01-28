@@ -5,13 +5,15 @@ import {
   from,
   fromPromise,
   InMemoryCache,
+  Operation,
   split
 } from '@apollo/client';
 import { setContext } from '@apollo/client/link/context';
 import { onError } from '@apollo/client/link/error';
 import { WebSocketLink } from '@apollo/client/link/ws';
 import { getMainDefinition } from '@apollo/client/utilities';
-import { OperationOptions, SubscriptionClient } from 'subscriptions-transport-ws'; // <- import this
+import { Kind, OperationTypeNode } from 'graphql';
+import { SubscriptionClient } from 'subscriptions-transport-ws';
 import tokenStorage from '../../helpers/tokenStorage';
 import { REFRESH_TOKEN } from '../mutations';
 
@@ -20,22 +22,12 @@ const url = {
   ws: 'wss://frontend-test-api.aircall.dev/websocket'
 };
 
-let isRefreshingToken: boolean = false;
-
 const getRefreshedToken = async (): Promise<void> => {
-  /**
-   * If we are already refreshing the token, return the current promise
-   * to avoid sending multiple requests
-   */
-  if (isRefreshingToken) return;
-
   // Set refresh token as the current access token to be used in the request from authLink
   const refreshToken = tokenStorage.getRefreshToken();
   if (refreshToken) {
     tokenStorage.setAccessToken(refreshToken);
   }
-
-  isRefreshingToken = true;
 
   try {
     const { data } = await client.mutate({
@@ -44,8 +36,6 @@ const getRefreshedToken = async (): Promise<void> => {
         refreshToken: refreshToken
       }
     });
-
-    isRefreshingToken = false;
 
     const { access_token, refresh_token } = data.refreshTokenV2;
 
@@ -57,33 +47,79 @@ const getRefreshedToken = async (): Promise<void> => {
   }
 };
 
+function isSubscriptionOperation(operation: Operation) {
+  const definition = getMainDefinition(operation.query);
+  return (
+    definition.kind === Kind.OPERATION_DEFINITION &&
+    definition.operation === OperationTypeNode.SUBSCRIPTION
+  );
+}
+
 const wsClient = new SubscriptionClient(url.ws, {
   lazy: true,
   reconnect: true,
   connectionParams: () => {
+    const accessToken = tokenStorage.getAccessToken();
+
     return {
-      authorization: `Bearer ${tokenStorage.getAccessToken()}`
+      authorization: accessToken ? `Bearer ${accessToken}` : ''
     };
   }
 });
 
-/**
- * Middleware to add the access token to the request
- * This is needed because when the websocket is reconnected an auth error is thrown
- */
-wsClient.applyMiddlewares((operationOptions: OperationOptions, next: Function) => {
-  operationOptions['authorization'] = tokenStorage.getAccessToken();
-  next();
-});
-
 const wsLink = new WebSocketLink(wsClient);
 
-wsClient.onConnected(() => console.log('websocket connected!!'));
-wsClient.onDisconnected(() => console.log('websocket disconnected!!'));
-wsClient.onReconnected(() => console.log('websocket reconnected!!'));
+wsClient.onConnected(() =>
+  console.log('%cwebsocket connected!!', 'color: green; background-color: yellow')
+);
+wsClient.onDisconnected(() =>
+  console.log('%cwebsocket disconnected!!', 'color: red; background-color: yellow')
+);
+console.log('%cwebsocket disconnected!!', 'color: red ; background-color: yellow');
+wsClient.onReconnected(() =>
+  console.log('%cwebsocket reconnected!!', 'color: green; background-color: yellow')
+);
 
 const httpLink: ApolloLink = createHttpLink({
   uri: url.http
+});
+
+let isRefreshingToken: boolean = false;
+let promise = Promise.resolve();
+
+/**
+ * Error link to handle errors
+ * If the error is a 401- Unauthorized, we need to refresh the token
+ */
+const errorLink: ApolloLink = onError(({ graphQLErrors, operation, forward }) => {
+  if (graphQLErrors?.some(err => err.message === 'Unauthorized')) {
+    // Check if the operation is a subscription
+    const isWebsocket = isSubscriptionOperation(operation);
+
+    if (!isRefreshingToken) {
+      isRefreshingToken = true;
+      promise = getRefreshedToken()
+        .then(() => {
+          isRefreshingToken = false;
+
+          // If the operation is a subscription, close the websocket connection and reconnect
+          if (isWebsocket) {
+            wsClient.close(true);
+          }
+        })
+        .catch(() => {
+          // If we get an error while refreshing the token, log the user out
+          localStorage.clear();
+          window.location.reload();
+        });
+    } else {
+      return forward(operation);
+    }
+
+    return fromPromise(promise).flatMap(() => {
+      return forward(operation);
+    });
+  }
 });
 
 /**
@@ -92,7 +128,6 @@ const httpLink: ApolloLink = createHttpLink({
 const authLink: ApolloLink = setContext((_, { headers }) => {
   const accessToken = tokenStorage.getAccessToken();
 
-  // return the headers to the context so httpLink can read them
   return {
     headers: {
       ...headers,
@@ -102,37 +137,12 @@ const authLink: ApolloLink = setContext((_, { headers }) => {
 });
 
 /**
- * Error link to handle errors
- * If the error is a 401, we need to refresh the token
- */
-const errorLink: ApolloLink = onError(({ graphQLErrors, operation, forward }) => {
-  if (graphQLErrors) {
-    for (let err of graphQLErrors) {
-      const exception = err.extensions.exception as { status: number };
-
-      if (exception && exception.status === 401) {
-        return fromPromise(
-          getRefreshedToken().catch(() => {
-            // If we get an error while refreshing the token, log the user out
-            localStorage.clear();
-            window.location.href = '/login';
-          })
-        ).flatMap(() => {
-          return forward(operation);
-        });
-      }
-    }
-  }
-});
-
-/**
  * Split the link to use the websocket link for subscriptions
  * and the http link for everything else
  */
 const splitLink: ApolloLink = split(
-  ({ query }) => {
-    const definition = getMainDefinition(query);
-    return definition.kind === 'OperationDefinition' && definition.operation === 'subscription';
+  operation => {
+    return isSubscriptionOperation(operation);
   },
   wsLink,
   httpLink
