@@ -63,7 +63,8 @@ jobs:
       - name: Unit tests
         run: yarn test
 
-      - name: Cypress tests (headless browser)
+      - name: e2e tests
         uses: cypress-io/github-action@v4
         with:
           command: yarn test:e2e:run
+          working-directory: phone-test
