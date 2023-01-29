@@ -1,5 +1,12 @@
 # Aircall
 
+### Points addressed on the challenge
+- fix the logout feature
+- fix the token expiration UX
+- add e2e tests
+- implement the archive call feature and add real-time support [here](https://github.com/filipe7rito/frontend-hiring-test/pull/1)
+- improve the pagination in the calls list view
+
 ## Requirements
 
 For development, you will only need Node.js installed on your environement.
@@ -45,7 +52,11 @@ Runs application tests .<br>
 
 Runs E2E tests.<br>
 
-### `test:e2e:open`
+### `yarn test:e2e:open`
+
+Runs E2E tests in interactive mode.<br>
+
+### `yarn build`
 
 Builds the app for production to the `build` folder.<br>
 It correctly bundles React in production mode and optimizes the build for the best performance.
